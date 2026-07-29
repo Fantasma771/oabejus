@@ -1,5 +1,5 @@
 """
-Lógica da busca JusBrasil por nome (preservada do agente original).
+Lógica JusBrasil por nome (preservada).
 """
 import re
 import unicodedata

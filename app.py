@@ -1,19 +1,13 @@
 """
-Servidor FastAPI — Buscador OAB + JusBrasil
+Servidor FastAPI — Buscador OAB → JusBrasil (v1.2)
 
 Endpoints:
-    GET  /                            -> serve index.html (frontend)
-    GET  /api/oab/por-nome?name=...   -> busca OAB pelo nome (cna.oab.org.br)
-    GET  /api/oab/processos?state=&number=   -> busca processos pela OAB
-    GET  /api/jusbrasil?nome=...      -> busca processos JusBrasil pelo nome
-    GET  /api/search?nome=...         -> LEGADO: alias para /api/jusbrasil
-    GET  /healthz                     -> healthcheck
+    GET  /                              -> serve index.html (frontend 1 aba simples)
+    GET  /api/oab/processos?state=&number=    -> fluxo PRINCIPAL: OAB → CNA → JusBrasil
+    GET  /api/oab/por-nome?name=              -> modo secundário: nome → OAB + CNA
+    GET  /healthz                            -> healthcheck
 
 Variável de ambiente obrigatória: SERPAPI_KEY
-Execução local:
-    pip install -r requirements.txt
-    export SERPAPI_KEY=sua_chave_aqui
-    uvicorn app:app --reload --port 8000
 """
 import os
 from pathlib import Path
@@ -24,20 +18,20 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from oab_search import (
     run_oab_search_by_name,
-    run_oab_search_processes,
-    run_jusbrasil_search,
+    run_processos_por_oab,
 )
 
 SERPAPI_KEY = os.environ.get("SERPAPI_KEY")
 STATIC_DIR = Path(__file__).parent
 
 app = FastAPI(
-    title="Buscador OAB + JusBrasil",
+    title="Buscador OAB → JusBrasil",
     description=(
-        "Microsserviço que faz três buscas jurídicas em paralelo: "
-        "OAB por nome no CNA, processos pela OAB, e JusBrasil por nome."
+        "Receba a OAB (UF + número) e devolva a URL canônica do JusBrasil "
+        "com todos os processos, junto com a OAB confirmada e o nome completo "
+        "do advogado conforme o Cadastro Nacional (cna.oab.org.br)."
     ),
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -52,10 +46,7 @@ def _require_key():
     if not SERPAPI_KEY:
         raise HTTPException(
             status_code=500,
-            detail=(
-                "SERPAPI_KEY não configurada. Defina a variável de ambiente "
-                "SERPAPI_KEY no host (ex: Render → Environment → Add env var)."
-            ),
+            detail="SERPAPI_KEY não configurada. Defina a env var no host.",
         )
 
 
@@ -65,58 +56,57 @@ async def healthz():
     return {"status": "ok", "serpapi_key_set": bool(SERPAPI_KEY)}
 
 
+def _validate_oab(state: str, number: str) -> tuple:
+    s = re.sub(r"[^A-Za-z]", "", (state or "")).upper()
+    n = re.sub(r"[^0-9]", "", (number or ""))
+    if not s or len(s) != 2:
+        raise HTTPException(status_code=400, detail="UF inválida (use 2 letras, ex: SP, RJ).")
+    if len(n) < 4:
+        raise HTTPException(status_code=400, detail="Número OAB deve ter ao menos 4 dígitos.")
+    return s, n
+
+
+import re  # noqa: E402
+
+
+@app.get("/api/oab/processos")
+async def oab_processos(state: str, number: str):
+    """
+    Fluxo PRINCIPAL:
+        1. Consulta `{OAB SP 123456 site:cna.oab.org.br}` no Google
+        2. Extrai nome completo + confirma OAB/UF/status
+        3. Consulta `{nome} site:jusbrasil.com.br processos` no Google
+        4. Devolve a URL canônica do JusBrasil + total de processos + OAB correta + nome
+    """
+    s, n = _validate_oab(state, number)
+    _require_key()
+    try:
+        out = run_processos_por_oab(s, n, SERPAPI_KEY)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Falha na busca: {e}")
+    return JSONResponse(out)
+
+
 @app.get("/api/oab/por-nome")
 async def oab_por_nome(name: str):
+    """Modo secundário: nome completo → OAB + URL CNA."""
     name = (name or "").strip()
     if len(name) < 3:
         raise HTTPException(status_code=400, detail="Nome deve ter ao menos 3 caracteres.")
     _require_key()
     try:
         out = run_oab_search_by_name(name, SERPAPI_KEY)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Falha na busca: {e}")
     return JSONResponse(out)
-
-
-@app.get("/api/oab/processos")
-async def oab_processos(state: str, number: str):
-    state_clean = "".join(c for c in (state or "") if c.isalpha()).upper()
-    number_clean = "".join(c for c in (number or "") if c.isdigit())
-    if not state_clean or len(state_clean) != 2:
-        raise HTTPException(status_code=400, detail="UF deve ter 2 letras (ex: SP, RJ).")
-    if len(number_clean) < 4:
-        raise HTTPException(status_code=400, detail="Número OAB deve ter ao menos 4 dígitos.")
-    _require_key()
-    try:
-        out = run_oab_search_processes(state_clean, number_clean, SERPAPI_KEY)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Falha na busca: {e}")
-    return JSONResponse(out)
-
-
-@app.get("/api/jusbrasil")
-async def jusbrasil(nome: str):
-    nome = (nome or "").strip()
-    if len(nome) < 3:
-        raise HTTPException(status_code=400, detail="Nome deve ter ao menos 3 caracteres.")
-    _require_key()
-    try:
-        out = run_jusbrasil_search(nome, SERPAPI_KEY)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Falha na busca: {e}")
-    return JSONResponse(out)
-
-
-# Compatibilidade com chamadas antigas do agente original
-@app.get("/api/search")
-async def search_legacy(nome: str):
-    return await jusbrasil(nome)
 
 
 @app.get("/")
