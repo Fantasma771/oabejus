@@ -1,11 +1,13 @@
-"""
-Lógica JusBrasil por nome (preservada).
-"""
+"""Parser JusBrasil — utilitários preservados"""
 import re
 import unicodedata
 
-JUSBRASIL_PATTERN = re.compile(
+JUSBRASIL_PROCESSOS_PATTERN = re.compile(
     r"^https?://(?:www\.)?jusbrasil\.com\.br/processos/nome/(\d+)/([\w\-]+)/?$"
+)
+JUSBRASIL_ADVOGADO_PATTERN = re.compile(
+    r"^https?://(?:www\.)?jusbrasil\.com\.br/advogados?/([a-z]{2})-(\d+)/([\w\-]+)/?(\d+)?/?$",
+    re.IGNORECASE,
 )
 TOTAL_RE = re.compile(r"encontrou\s+(\d+)\s+processos?", re.IGNORECASE)
 
@@ -18,31 +20,20 @@ def slugify(name: str) -> str:
     return cleaned
 
 
-def build_query(name: str) -> str:
-    quoted = f'"{name.strip()}"'
-    return f"{quoted} site:jusbrasil.com.br processos"
+def is_jusbrasil_url(url: str) -> bool:
+    return bool(url) and "jusbrasil.com.br" in url.lower()
 
 
-def find_jusbrasil_url(results, expected_slug):
-    matches = []
-    for r in results:
-        url = r.get("url") or r.get("link") or ""
-        m = JUSBRASIL_PATTERN.match(url)
-        if not m:
-            continue
-        _id, slug = m.group(1), m.group(2)
-        matches.append((url, slug, _id))
-
-    if not matches:
-        return None, "no_jusbrasil_url_in_results"
-
-    for url, slug, _id in matches:
-        if slug == expected_slug:
-            return url, "exact_slug_match"
-    for url, slug, _id in matches:
-        if slug.replace("-", "") == expected_slug.replace("-", ""):
-            return url, "slug_strip_match"
-    return matches[0][0], "first_jusbrasil_match"
+def parse_jusbrasil_path(url: str) -> dict:
+    """Devolve um dict com kind e campos extraídos."""
+    m1 = JUSBRASIL_PROCESSOS_PATTERN.match(url or "")
+    if m1:
+        return {"kind": "pessoa_page", "pessoa_id": m1.group(1), "slug": m1.group(2)}
+    m2 = JUSBRASIL_ADVOGADO_PATTERN.match(url or "")
+    if m2:
+        return {"kind": "advogado_page", "uf": m2.group(1), "numero": m2.group(2),
+                "slug": m2.group(3), "lawyer_id": m2.group(4)}
+    return {"kind": None}
 
 
 def extract_total_processos(results):

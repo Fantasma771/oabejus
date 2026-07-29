@@ -1,15 +1,14 @@
 """
-Servidor FastAPI — Buscador OAB → JusBrasil (v1.2)
+Servidor FastAPI — Buscador OAB → JusBrasil (v1.3)
 
 Endpoints:
-    GET  /                              -> serve index.html (frontend 1 aba simples)
-    GET  /api/oab/processos?state=&number=    -> fluxo PRINCIPAL: OAB → CNA → JusBrasil
-    GET  /api/oab/por-nome?name=              -> modo secundário: nome → OAB + CNA
-    GET  /healthz                            -> healthcheck
-
-Variável de ambiente obrigatória: SERPAPI_KEY
+    GET  /                                   -> serve index.html
+    GET  /api/oab/processos?state=&number=   -> fluxo principal
+    GET  /api/oab/por-nome?name=             -> modo secundário
+    GET  /healthz                             -> healthcheck
 """
 import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -27,11 +26,11 @@ STATIC_DIR = Path(__file__).parent
 app = FastAPI(
     title="Buscador OAB → JusBrasil",
     description=(
-        "Receba a OAB (UF + número) e devolva a URL canônica do JusBrasil "
-        "com todos os processos, junto com a OAB confirmada e o nome completo "
-        "do advogado conforme o Cadastro Nacional (cna.oab.org.br)."
+        "Recebe OAB (UF + número) e devolve URL JusBrasil, OAB confirmada e "
+        "nome completo — usando múltiplas fontes em paralelo. Retorna também "
+        "links diretos de verificação manual (cna.oab.org.br, confirmadv.oab.org.br)."
     ),
-    version="1.2.0",
+    version="1.3.0",
 )
 
 app.add_middleware(
@@ -42,70 +41,48 @@ app.add_middleware(
 )
 
 
-def _require_key():
-    if not SERPAPI_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="SERPAPI_KEY não configurada. Defina a env var no host.",
-        )
-
-
-@app.get("/healthz")
-async def healthz():
-    _require_key()
-    return {"status": "ok", "serpapi_key_set": bool(SERPAPI_KEY)}
-
-
 def _validate_oab(state: str, number: str) -> tuple:
     s = re.sub(r"[^A-Za-z]", "", (state or "")).upper()
     n = re.sub(r"[^0-9]", "", (number or ""))
     if not s or len(s) != 2:
-        raise HTTPException(status_code=400, detail="UF inválida (use 2 letras, ex: SP, RJ).")
+        raise HTTPException(status_code=400, detail="UF inválida (use 2 letras, ex: SP).")
     if len(n) < 4:
         raise HTTPException(status_code=400, detail="Número OAB deve ter ao menos 4 dígitos.")
     return s, n
 
 
-import re  # noqa: E402
+@app.get("/healthz")
+async def healthz():
+    return {
+        "status": "ok",
+        "serpapi_key_set": bool(SERPAPI_KEY),
+        "note": "SERPAPI_KEY ausente faz o sistema cair no modo padrão (links de verificação manual).",
+    }
 
 
 @app.get("/api/oab/processos")
 async def oab_processos(state: str, number: str):
-    """
-    Fluxo PRINCIPAL:
-        1. Consulta `{OAB SP 123456 site:cna.oab.org.br}` no Google
-        2. Extrai nome completo + confirma OAB/UF/status
-        3. Consulta `{nome} site:jusbrasil.com.br processos` no Google
-        4. Devolve a URL canônica do JusBrasil + total de processos + OAB correta + nome
-    """
     s, n = _validate_oab(state, number)
-    _require_key()
     try:
-        out = run_processos_por_oab(s, n, SERPAPI_KEY)
+        out = run_processos_por_oab(s, n, SERPAPI_KEY or "")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Falha na busca: {e}")
+        raise HTTPException(status_code=502, detail=f"Falha: {e}")
     return JSONResponse(out)
 
 
 @app.get("/api/oab/por-nome")
 async def oab_por_nome(name: str):
-    """Modo secundário: nome completo → OAB + URL CNA."""
     name = (name or "").strip()
     if len(name) < 3:
         raise HTTPException(status_code=400, detail="Nome deve ter ao menos 3 caracteres.")
-    _require_key()
     try:
-        out = run_oab_search_by_name(name, SERPAPI_KEY)
+        out = run_oab_search_by_name(name, SERPAPI_KEY or "")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Falha na busca: {e}")
+        raise HTTPException(status_code=502, detail=f"Falha: {e}")
     return JSONResponse(out)
 
 

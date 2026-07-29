@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Buscador OAB → JusBrasil</title>
+  <title>Buscador OAB → JusBrasil (v1.3)</title>
   <style>
     :root {
       --bg: #0b1220;
@@ -25,138 +25,101 @@
       color: var(--text);
       min-height: 100vh;
     }
-    .wrap { max-width: 760px; margin: 48px auto; padding: 0 20px; }
-    header h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.01em; }
-    header p { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
-
+    .wrap { max-width: 820px; margin: 32px auto; padding: 0 20px; }
+    header h1 { margin: 0 0 6px; font-size: 26px; }
+    header p { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 24px;
+      padding: 22px;
     }
     .row { display: flex; gap: 12px; }
     .row > * { flex: 1; }
     label {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-      font-weight: 500;
+      display: block; font-size: 13px; color: var(--muted);
+      margin-bottom: 6px; font-weight: 500;
     }
     input {
-      width: 100%;
-      padding: 10px 12px;
-      background: #0a0f1c;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
+      width: 100%; padding: 10px 12px;
+      background: #0a0f1c; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 14px; outline: none;
       transition: border .15s;
     }
     input:focus { border-color: var(--accent); }
     button.primary {
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 16px;
-      transition: background .15s;
+      width: 100%; padding: 12px 16px;
+      background: var(--accent); color: white; border: none;
+      border-radius: 6px; font-size: 15px; font-weight: 600;
+      cursor: pointer; margin-top: 16px; transition: background .15s;
     }
     button.primary:hover:not(:disabled) { background: var(--accent-hover); }
     button.primary:disabled { opacity: 0.6; cursor: wait; }
-
-    .results {
-      margin-top: 16px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 24px;
-      display: none;
-    }
+    .results { margin-top: 16px; display: none; }
     .results.show { display: block; }
-    .results h2 { margin: 0 0 14px; font-size: 18px; font-weight: 600; }
-    .section { margin-top: 18px; }
-    .section .label {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 6px;
+    .result-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 22px; margin-bottom: 12px;
     }
-    .section .value { font-size: 16px; font-weight: 500; }
-    .section .value a { color: var(--accent); text-decoration: none; word-break: break-all; }
+    .section { margin-bottom: 18px; }
+    .section:last-child { margin-bottom: 0; }
+    .section .label {
+      color: var(--muted); font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+    }
+    .section .value {
+      font-size: 16px; font-weight: 600; word-break: break-word;
+    }
+    .section .value a { color: var(--accent); text-decoration: none; }
     .section .value a:hover { text-decoration: underline; }
     .oab-pill {
-      display: inline-block;
-      padding: 6px 14px;
-      background: #0a0f1c;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      display: inline-block; padding: 6px 14px;
+      background: #0a0f1c; border: 1px solid var(--border);
+      border-radius: 999px; font-family: ui-monospace, monospace;
+      font-size: 15px; font-weight: 600;
     }
-    .status {
-      display: inline-block;
-      padding: 3px 10px;
-      background: rgba(43, 209, 126, 0.15);
-      color: var(--ok);
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-left: 8px;
+    .status-pill {
+      display: inline-block; padding: 3px 10px;
+      background: rgba(43, 209, 126, 0.15); color: var(--ok);
+      border-radius: 12px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em; margin-left: 8px;
       vertical-align: middle;
     }
-    .status.warn { background: rgba(244, 183, 64, 0.15); color: var(--warn); }
-    .status.err { background: rgba(255, 91, 107, 0.15); color: var(--err); }
-    .query {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
-      color: var(--muted);
-      background: #0a0f1c;
-      padding: 8px 10px;
+    .status-pill.warn { background: rgba(244, 183, 64, 0.15); color: var(--warn); }
+    .status-pill.err { background: rgba(255, 91, 107, 0.15); color: var(--err); }
+    .links { list-style: none; padding: 0; margin: 0; }
+    .links li {
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .links li:last-child { border-bottom: none; }
+    .links a { color: var(--accent); text-decoration: none; word-break: break-all; }
+    .links a:hover { text-decoration: underline; }
+    .links .src {
+      display: inline-block; padding: 1px 6px; background: var(--border);
+      color: var(--muted); border-radius: 4px; font-size: 10px;
+      font-weight: 700; text-transform: uppercase; margin-right: 6px;
+    }
+    .links .desc { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .warning {
+      padding: 10px 14px;
+      background: rgba(244, 183, 64, 0.1);
+      border: 1px solid rgba(244, 183, 64, 0.3);
       border-radius: 6px;
-      margin-top: 6px;
-      word-break: break-all;
+      color: var(--warn); font-size: 13px; margin-bottom: 18px;
     }
-    .err-msg {
-      color: var(--err);
-      font-size: 14px;
-      padding: 12px;
-      background: rgba(255, 91, 107, 0.1);
-      border-radius: 6px;
-      border: 1px solid rgba(255, 91, 107, 0.3);
-    }
-    .helpers { margin-top: 24px; }
-    .helpers a {
-      color: var(--muted);
-      font-size: 13px;
-      text-decoration: none;
-    }
-    .helpers a:hover { color: var(--text); text-decoration: underline; }
+    .helper-text { font-size: 12px; color: var(--muted); margin-top: 4px; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>🔎 Buscador OAB → JusBrasil</h1>
-    <p>Informe a OAB (UF + número). O sistema consulta o <strong>CNA</strong> para confirmar o advogado e devolve o link do <strong>JusBrasil</strong> com todos os processos dele.</p>
+    <p>Informe a OAB (UF + número). O sistema busca no índice público + CNA + JusBrasil e devolve o link com os processos, a OAB confirmada e o nome completo.</p>
   </header>
 
   <div class="card">
     <div class="row">
-      <div style="flex: 0 0 120px;">
+      <div style="flex: 0 0 110px;">
         <label for="oab-state">UF</label>
         <input id="oab-state" type="text" maxlength="2" placeholder="SP" autocomplete="off">
       </div>
@@ -165,17 +128,10 @@
         <input id="oab-number" type="text" inputmode="numeric" placeholder="123456" autocomplete="off">
       </div>
     </div>
-    <button class="primary" id="btn-search">Pesquisar no CNA e JusBrasil</button>
+    <button class="primary" id="btn-search">Pesquisar — fluxo OAB → CNA → JusBrasil</button>
   </div>
 
-  <div class="results" id="results">
-    <h2 id="results-title">Resultado</h2>
-    <div id="results-body"></div>
-  </div>
-
-  <div class="helpers">
-    <a href="#" id="alt-search">🔁 Buscar OAB pelo nome (modo secundário)</a>
-  </div>
+  <div class="results" id="results"></div>
 </div>
 
 <script>
@@ -183,37 +139,39 @@
   const numberEl = document.getElementById("oab-number");
   const btn = document.getElementById("btn-search");
   const resultsBox = document.getElementById("results");
-  const resultsTitle = document.getElementById("results-title");
-  const resultsBody = document.getElementById("results-body");
 
-  stateEl.addEventListener("input", () => { stateEl.value = stateEl.value.toUpperCase().replace(/[^A-Z]/g, ""); });
-  numberEl.addEventListener("input", () => { numberEl.value = numberEl.value.replace(/\D/g, ""); });
+  stateEl.addEventListener("input", () => {
+    stateEl.value = stateEl.value.toUpperCase().replace(/[^A-Z]/g, "");
+  });
+  numberEl.addEventListener("input", () => {
+    numberEl.value = numberEl.value.replace(/\D/g, "");
+  });
 
   btn.addEventListener("click", async () => {
     const state = stateEl.value.trim().toUpperCase();
     const number = numberEl.value.trim();
-
-    if (!/^[A-Z]{2}$/.test(state)) { showError("UF inválida — use 2 letras (ex: SP, RJ, MG)."); return; }
-    if (number.length < 4) { showError("Número da OAB deve ter ao menos 4 dígitos."); return; }
+    if (!/^[A-Z]{2}$/.test(state)) { alert("UF inválida — use 2 letras (ex: SP)."); return; }
+    if (number.length < 4) { alert("Número OAB deve ter ao menos 4 dígitos."); return; }
 
     btn.disabled = true; btn.textContent = "Pesquisando...";
-    resultsBox.classList.remove("show");
-    resultsBody.innerHTML = "";
 
     const url = `/api/oab/processos?state=${encodeURIComponent(state)}&number=${encodeURIComponent(number)}`;
     try {
       const r = await fetch(url);
       const data = await r.json();
-      if (!r.ok) { showError(data.detail || `HTTP ${r.status}`); return; }
+      if (!r.ok) {
+        renderError(data.detail || `HTTP ${r.status}`);
+        return;
+      }
       render(data, state, number);
     } catch (e) {
-      showError("Falha na requisição: " + e.message);
+      renderError("Falha na requisição: " + e.message);
     } finally {
-      btn.disabled = false; btn.textContent = "Pesquisar no CNA e JusBrasil";
+      btn.disabled = false; btn.textContent = "Pesquisar — fluxo OAB → CNA → JusBrasil";
     }
   });
 
-  function escapeHtml(s) {
+  function esc(s) {
     return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
 
@@ -221,93 +179,97 @@
     if (!status) return "";
     const s = status.toUpperCase();
     const cls = ["CANCELADA","SUSPENSA","IRREGULAR","LICENCIADA","LICENCIADO","BAIXA"].includes(s) ? "err" : "ok";
-    return `<span class="status ${cls}">${escapeHtml(s)}</span>`;
+    return `<span class="status-pill ${cls}">${esc(s)}</span>`;
   }
 
-  function showError(msg) {
-    resultsTitle.textContent = "Erro";
-    resultsBody.innerHTML = `<div class="err-msg">${escapeHtml(msg)}</div>`;
+  function renderError(msg) {
+    resultsBox.innerHTML = `<div class="result-card"><div class="section"><div class="label">❌ Erro</div><div class="value" style="color:var(--err);">${esc(msg)}</div></div></div>`;
     resultsBox.classList.add("show");
+  }
+
+  function linkOrDash(href, label) {
+    if (!href) return `<span style="color:var(--muted);">—</span>`;
+    return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label || href)}</a>`;
+  }
+
+  function renderLink(l) {
+    const isJb = l.url && l.url.toLowerCase().includes("jusbrasil");
+    const isCna = l.url && l.url.toLowerCase().includes("cna.oab");
+    const isOab = l.url && (l.url.toLowerCase().includes("oab.org.br"));
+    let src = "outros";
+    if (isJb) src = "jusbrasil";
+    else if (isCna) src = "cna";
+    else if (isOab) src = "oab";
+    return `<li><span class="src">${src}</span><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.title || l.url)}</a>${l.description ? `<span class="desc">${esc(l.description)}</span>` : ""}</li>`;
   }
 
   function render(d, state, number) {
     const oab = d.oab_correta || {};
-    const linkPill = (href, label) => href
-      ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
-      : `<span style="color:var(--muted);">—</span>`;
+    const total = d.total_processos != null ? `${d.total_processos} processos encontrados` : "total não divulgado";
 
-    const total = d.total_processos != null ? `${d.total_processos} processos encontrados` : "Total não disponível";
+    const jbUrl = d.jusbrasil_url;
+    const auditLinks = (d.audit_links || []).length
+      ? `<ul class="links">${d.audit_links.map(renderLink).join("")}</ul>`
+      : `<div class="helper-text">Sem links de auditoria retornados.</div>`;
 
-    resultsTitle.textContent = `OAB ${state} ${number}`;
-    resultsBody.innerHTML = `
-      <div class="section">
-        <div class="label">📂 JusBrasil — processos do advogado</div>
-        <div class="value">${linkPill(d.jusbrasil_url, d.jusbrasil_url || "Nenhuma URL encontrada")}</div>
-        <div style="color:var(--muted); font-size:13px; margin-top:4px;">
-          ${escapeHtml(total)} ${d.match_quality && d.jusbrasil_url ? `(match: ${escapeHtml(d.match_quality)})` : ""}
+    const manualLinks = (d.urls_verificacao_manual || []).length
+      ? `<ul class="links">${d.urls_verificacao_manual.map(l =>
+          `<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a> <span class="src">${esc(l.url.replace(/^https?:\/\//,''))}</span></li>`).join("")}</ul>`
+      : "";
+
+    const queries = (d.google_queries_usadas || []).slice(0, 3).map((q, i) => {
+      const u = (d.google_url_verificacao || [])[i] || "";
+      return `<li>${u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(q)}</a>` : esc(q)}</li>`;
+    }).join("");
+
+    const serpWarn = !d.serpapi_used
+      ? `<div class="warning"><strong>⚠️ Modo sem SerpAPI:</strong> o servidor não tem <code>SERPAPI_KEY</code>. Os dados abaixo vêm do template de URLs conhecido (JusBrasil, ConfirmADV, CNA) + referências para você buscar manualmente no Google.</div>`
+      : "";
+
+    resultsBox.innerHTML = `
+      ${serpWarn}
+      <div class="result-card">
+        <div class="section">
+          <div class="label">📂 JusBrasil — processos do advogado</div>
+          <div class="value">${linkOrDash(jbUrl, jbUrl || "Nenhuma URL JusBrasil encontrada automaticamente")}</div>
+          <div class="helper-text">${esc(total)}</div>
         </div>
-      </div>
 
-      <div class="section">
-        <div class="label">🆔 OAB correta (confirmada pelo CNA)</div>
-        <div class="value">
-          ${oab.numero ? `<span class="oab-pill">OAB/${escapeHtml(oab.uf || state)} ${escapeHtml(oab.numero)}</span>` : `<span style="color:var(--muted);">—</span>`}
-          ${statusPill(oab.status)}
+        <div class="section">
+          <div class="label">🆔 OAB correta (confirmada)</div>
+          <div class="value">
+            ${oab.numero
+              ? `<span class="oab-pill">OAB/${esc(oab.uf || state)} ${esc(oab.numero)}</span> ${statusPill(oab.status)}`
+              : `<span class="oab-pill">OAB/${esc(state)} ${esc(number)}</span> <span class="status-pill warn">a verificar no CNA</span>`}
+          </div>
         </div>
-      </div>
 
-      <div class="section">
-        <div class="label">👤 Nome completo</div>
-        <div class="value">${escapeHtml(d.nome_completo || "—")}</div>
-        ${d.cna_url ? `<div style="margin-top:6px; font-size:13px;">Cadastro CNA: <a href="${escapeHtml(d.cna_url)}" target="_blank" style="color:var(--accent); text-decoration:none;">abrir</a></div>` : ""}
-      </div>
+        <div class="section">
+          <div class="label">👤 Nome completo</div>
+          <div class="value">${esc(d.nome_completo || "— (verifique na CNA manualmente)")}</div>
+          ${d.cna_url ? `<div class="helper-text">Cadastro CNA: <a href="${esc(d.cna_url)}" target="_blank" style="color:var(--accent);">${esc(d.cna_url)}</a></div>` : ""}
+        </div>
 
-      <div class="section">
-        <div class="label">🔍 Queries Google usadas</div>
-        <div class="query">cna: ${escapeHtml(d.google_query_cna || "")}</div>
-        <div class="query">jusbrasil: ${escapeHtml(d.google_query_jusbrasil || "")}</div>
+        <div class="section">
+          <div class="label">🔗 Links para verificação manual (recomendado)</div>
+          ${manualLinks || `<div class="helper-text">—</div>`}
+        </div>
+
+        ${d.audit_links && d.audit_links.length ? `
+          <div class="section">
+            <div class="label">🔍 Resultados Google encontrados</div>
+            ${auditLinks}
+          </div>
+        ` : ""}
+
+        <div class="section">
+          <div class="label">🧪 Queries Google usadas (clique para abrir)</div>
+          <ul class="links">${queries}</ul>
+        </div>
       </div>
     `;
     resultsBox.classList.add("show");
   }
-
-  // Modo secundário (link no rodapé): prompt simples para nome
-  document.getElementById("alt-search").addEventListener("click", async (e) => {
-    e.preventDefault();
-    const name = prompt("Nome completo do advogado:");
-    if (!name || name.trim().length < 3) return;
-    stateEl.value = ""; numberEl.value = "";
-    btn.disabled = true; btn.textContent = "Pesquisando...";
-    try {
-      const r = await fetch(`/api/oab/por-nome?name=${encodeURIComponent(name)}`);
-      const data = await r.json();
-      if (!r.ok) { showError(data.detail || `HTTP ${r.status}`); return; }
-      const oab = data.oab_correta || {};
-      resultsTitle.textContent = `OAB por nome: ${name}`;
-      resultsBody.innerHTML = `
-        <div class="section">
-          <div class="label">🆔 OAB encontrada</div>
-          <div class="value">
-            ${oab.oab_number ? `<span class="oab-pill">OAB/${escapeHtml(oab.oab_state || "?")} ${escapeHtml(oab.oab_number)}</span>` : "—"}
-            ${statusPill(oab.status)}
-          </div>
-        </div>
-        <div class="section">
-          <div class="label">👤 Nome</div>
-          <div class="value">${escapeHtml(data.nome_completo || "—")}</div>
-        </div>
-        <div class="section">
-          <div class="label">🔗 CNA</div>
-          <div class="value">${data.cna_url ? `<a href="${escapeHtml(data.cna_url)}" target="_blank">${escapeHtml(data.cna_url)}</a>` : "—"}</div>
-        </div>
-      `;
-      resultsBox.classList.add("show");
-    } catch (e) {
-      showError("Falha: " + e.message);
-    } finally {
-      btn.disabled = false; btn.textContent = "Pesquisar no CNA e JusBrasil";
-    }
-  });
 </script>
 </body>
 </html>
